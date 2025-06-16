@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://axios-playground.com/sitemap.xml
+
+# Popular crawlers
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Block access to sensitive files
+Disallow: /api/
+Disallow: /*.json$
+Disallow: /node_modules/ 

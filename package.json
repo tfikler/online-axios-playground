@@ -1,0 +1,56 @@
+{
+  "name": "online-axios-playground",
+  "version": "1.0.0",
+  "description": "Free online Axios playground for testing HTTP requests and APIs. Perfect for developers, QA engineers, and API testing.",
+  "main": "index.js",
+  "author": "Tomer Fikler",
+  "license": "MIT",
+  "keywords": [
+    "axios",
+    "axios-playground",
+    "online-axios-test",
+    "http-request-tester",
+    "api-testing",
+    "rest-api-tester",
+    "axios-online",
+    "http-client",
+    "api-playground",
+    "cors-proxy",
+    "json-response-viewer",
+    "http-testing-tool"
+  ],
+  "homepage": "https://axios-playground.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tomerfikler/online-axios-playground.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tomerfikler/online-axios-playground/issues"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext js,jsx,ts,tsx",
+    "lint:fix": "eslint . --ext js,jsx,ts,tsx --fix"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "axios": "^1.6.0",
+    "lucide-react": "^0.292.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@vitejs/plugin-react": "^4.1.1",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.53.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.5",
+    "typescript": "^5.2.2",
+    "vite": "^4.5.0"
+  }
+} 
