@@ -112,6 +112,7 @@ function App() {
   const [response, setResponse] = useState<ResponseData | null>(null)
   const [loading, setLoading] = useState(false)
   const [useCorsProxy, setUseCorsProxy] = useState(false)
+  const [corsProxyUrl, setCorsProxyUrl] = useState('https://cors-anywhere.herokuapp.com/')
 
   const httpMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD']
 
@@ -143,13 +144,38 @@ function App() {
     const startTime = Date.now()
 
     try {
-      // Prepare headers
-      const headers: Record<string, string> = {}
+      // Prepare enhanced browser headers to bypass sophisticated bot detection
+      const browserHeaders: Record<string, string> = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Cache-Control': 'max-age=0',
+        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+        'Referer': 'https://www.google.com/',
+        'Origin': 'https://www.google.com'
+      }
+
+      // Add custom headers from user (these will override browser headers if same key)
+      const headers: Record<string, string> = { ...browserHeaders }
       config.headers.forEach(header => {
         if (header.key && header.value) {
           headers[header.key] = header.value
         }
       })
+
+      // For GET requests, ensure we have the right Accept header for HTML content
+      if (config.method === 'GET' && !config.headers.some(h => h.key.toLowerCase() === 'accept')) {
+        headers['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
+      }
 
       // Prepare request data
       let data = undefined
@@ -163,7 +189,7 @@ function App() {
 
       // Use CORS proxy if enabled
       const finalUrl = useCorsProxy 
-        ? `https://cors-anywhere.herokuapp.com/${config.url}` 
+        ? `${corsProxyUrl}${config.url}` 
         : config.url
 
       const axiosConfig = {
@@ -234,15 +260,30 @@ function App() {
       } else if (axiosError.response?.status) {
         const status = axiosError.response.status
         if (status >= 400 && status < 500) {
-          errorInfo = {
-            ...errorInfo,
-            type: 'Client Error',
-            details: `HTTP ${status}: ${axiosError.response.statusText}`,
-            suggestions: [
-              'Check the request URL and parameters',
-              'Verify authentication headers if required',
-              'Review the request method and body format'
-            ]
+          if (status === 403) {
+            errorInfo = {
+              ...errorInfo,
+              type: 'Access Forbidden (403)',
+              details: 'The server understood the request but refused to authorize it. This often indicates bot detection.',
+              suggestions: [
+                'Enable CORS proxy and try different proxy servers',
+                'The site may have sophisticated bot detection',
+                'Try adding more specific headers (cookies, referrer)',
+                'Some sites require authentication or specific user sessions',
+                'Consider using a different testing API that allows programmatic access'
+              ]
+            }
+          } else {
+            errorInfo = {
+              ...errorInfo,
+              type: 'Client Error',
+              details: `HTTP ${status}: ${axiosError.response.statusText}`,
+              suggestions: [
+                'Check the request URL and parameters',
+                'Verify authentication headers if required',
+                'Review the request method and body format'
+              ]
+            }
           }
         } else if (status >= 500) {
           errorInfo = {
@@ -426,9 +467,40 @@ function App() {
                   Use CORS Proxy (for sites that block cross-origin requests)
                 </span>
               </label>
-              <p className="text-xs text-gray-500 mt-1">
-                This will route your request through a proxy to bypass CORS restrictions.
-                Note: The proxy may have rate limits and is not suitable for production use.
+              
+              {useCorsProxy && (
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Proxy Server</label>
+                  <select
+                    className="select w-full"
+                    value={corsProxyUrl}
+                    onChange={(e) => setCorsProxyUrl(e.target.value)}
+                  >
+                    <option value="https://cors-anywhere.herokuapp.com/">CORS Anywhere (Heroku)</option>
+                    <option value="https://api.allorigins.win/raw?url=">AllOrigins</option>
+                    <option value="https://corsproxy.io/?">CORS Proxy IO</option>
+                    <option value="https://proxy.cors.sh/">CORS.sh</option>
+                  </select>
+                </div>
+              )}
+              
+              <p className="text-xs text-gray-500 mt-2">
+                Routes requests through a proxy to bypass CORS restrictions and bot detection.
+                Try different proxies if one doesn't work.
+              </p>
+            </div>
+
+            {/* Browser Headers Info */}
+            <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800 font-medium mb-1">🌐 Browser-Like Requests</p>
+              <p className="text-xs text-blue-700 mb-2">
+                All requests automatically include realistic browser headers (User-Agent, Accept, etc.) 
+                to make them appear as if they're coming from a real web browser, not a bot.
+              </p>
+              <p className="text-xs text-orange-700 bg-orange-50 p-2 rounded border border-orange-200">
+                <strong>⚠️ Note:</strong> Some sites (like Amazon, Facebook, etc.) have advanced bot detection 
+                that may still block requests even with realistic headers. Try different proxy servers or 
+                use dedicated testing APIs instead.
               </p>
             </div>
 
@@ -505,6 +577,20 @@ function App() {
                       )}
                     </div>
                   )}
+                </div>
+
+                {/* Request Headers */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Request Headers Sent</h3>
+                  <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm overflow-auto max-h-40">
+                    <div className="space-y-1">
+                      <div className="text-green-400">// Browser-like headers automatically added:</div>
+                      <div className="text-blue-400">User-Agent: <span className="text-white">Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36...</span></div>
+                      <div className="text-blue-400">Accept: <span className="text-white">text/html,application/xhtml+xml,application/xml...</span></div>
+                      <div className="text-blue-400">Accept-Language: <span className="text-white">en-US,en;q=0.9</span></div>
+                      <div className="text-green-400">// + Your custom headers</div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Response Headers */}
